@@ -303,7 +303,7 @@ public class App {
         btnRegister.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(dashboardFrame, "Patient Registration UI Coming Soon!");
+                createRegisterPatientWindow(conn);
                 // Yahan hum Patient Registration ka UI jodenge next step mein
             }
         });
@@ -338,4 +338,100 @@ public class App {
         // Window ko screen par dikhana
         dashboardFrame.setVisible(true);
     }
+    // Sunder Patient Registration Window (Clean & Final)
+    public static void createRegisterPatientWindow(Connection conn) {
+        JFrame regFrame = new JFrame("Register New Patient");
+        regFrame.setSize(400, 350);
+        regFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        regFrame.setLocationRelativeTo(null);
+        regFrame.setLayout(null);
+
+        JLabel headLabel = new JLabel("Patient Registration Form", JLabel.CENTER);
+        headLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        headLabel.setBounds(50, 10, 300, 30);
+        regFrame.add(headLabel);
+
+        JLabel nameLabel = new JLabel("Full Name:");
+        nameLabel.setBounds(40, 60, 100, 25);
+        regFrame.add(nameLabel);
+
+        JTextField nameField = new JTextField();
+        nameField.setBounds(150, 60, 180, 25);
+        regFrame.add(nameField);
+
+        JLabel ageLabel = new JLabel("Age:");
+        ageLabel.setBounds(40, 100, 100, 25);
+        regFrame.add(ageLabel);
+
+        JTextField ageField = new JTextField();
+        ageField.setBounds(150, 100, 180, 25);
+        regFrame.add(ageField);
+
+        JLabel genderLabel = new JLabel("Gender:");
+        genderLabel.setBounds(40, 140, 100, 25);
+        regFrame.add(genderLabel);
+
+        JTextField genderField = new JTextField();
+        genderField.setBounds(150, 140, 180, 25);
+        regFrame.add(genderField);
+
+        JLabel phoneLabel = new JLabel("Contact No:");
+        phoneLabel.setBounds(40, 180, 100, 25);
+        regFrame.add(phoneLabel);
+
+        JTextField phoneField = new JTextField();
+        phoneField.setBounds(150, 180, 180, 25);
+        regFrame.add(phoneField);
+
+        JButton saveButton = new JButton("Save Patient");
+        saveButton.setBounds(120, 240, 150, 35);
+        saveButton.setBackground(new Color(0, 153, 76));
+        saveButton.setForeground(Color.WHITE);
+        saveButton.setFont(new Font("Arial", Font.BOLD, 14));
+        regFrame.add(saveButton);
+
+        saveButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String name = nameField.getText();
+                String ageStr = ageField.getText();
+                String gender = genderField.getText();
+                String phone = phoneField.getText();
+
+                if (name.isEmpty() || ageStr.isEmpty() || gender.isEmpty() || phone.isEmpty()) {
+                    JOptionPane.showMessageDialog(regFrame, "Please fill all fields!", "Warning", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                try {
+                    int age = Integer.parseInt(ageStr);
+
+                    // 5 parameters wali sahi query
+                    String query = "INSERT INTO patients (name, age, gender, phone, address) VALUES (?, ?, ?, ?, ?)";
+                    PreparedStatement pst = conn.prepareStatement(query);
+                    pst.setString(1, name);
+                    pst.setInt(2, age);
+                    pst.setString(3, gender);
+                    pst.setString(4, phone); 
+                    pst.setString(5, "");    
+
+                    int rows = pst.executeUpdate();
+                    if (rows > 0) {
+                        JOptionPane.showMessageDialog(regFrame, "🎉 Patient Registered Successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                        regFrame.dispose();
+                    }
+                    pst.close();
+
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(regFrame, "Age must be a number!", "Error", JOptionPane.ERROR_MESSAGE);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(regFrame, "Database Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        regFrame.setVisible(true);
+    }
+        // Sunder Patient Registration Window
 }
