@@ -2,43 +2,24 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Scanner;
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 public class App {
     private static Scanner scanner = new Scanner(System.in);
 
     public static void main(String[] args) {
-        System.out.println("=== CLINIC MANAGEMENT SYSTEM LOGIN ===");
-        System.out.print("Enter Email: ");
-        String email = scanner.nextLine();
-        System.out.print("Enter Password: ");
-        String password = scanner.nextLine();
-        
-        try {
-            Connection conn = config.DBConnection.getConnection();
-            if (conn != null) {
-                String query = "SELECT name, role FROM users WHERE email = ? AND password = ?";
-                PreparedStatement pst = conn.prepareStatement(query);
-                pst.setString(1, email);
-                pst.setString(2, password);
-                ResultSet rs = pst.executeQuery();
-                
-                if (rs.next()) {
-                    System.out.println("\n--- Login Successful! ---");
-                    System.out.println("Welcome, " + rs.getString("name") + " (" + rs.getString("role") + ")");
-                    
-                    // Login ke baad main menu dikhana
-                    showMenu(conn);
-                } else {
-                    System.out.println("\n--- Invalid Email or Password! Login Failed. ---");
-                }
-                
-                rs.close();
-                pst.close();
-                conn.close();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        // Database se connect karte hain
+        Connection conn = config.DBConnection.getConnection();
+        if (conn == null) {
+            JOptionPane.showMessageDialog(null, "Database Connection Failed!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
         }
+
+        // Terminal menu ko rok kar naya UI Window open karte hain
+        createLoginWindow(conn);
     }
 
     // Main Menu jahan se Patient Add hoga
@@ -186,5 +167,175 @@ public class App {
             System.out.println("Error while booking appointment.");
             e.printStackTrace();
         }
+    }
+    // Sunder UI Login Window
+    public static void createLoginWindow(Connection conn) {
+        // 1. Main Window (JFrame) banana
+        JFrame frame = new JFrame("Clinic Management System - Login");
+        frame.setSize(400, 300);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLocationRelativeTo(null); // Window screen ke beech mein khulegi
+        frame.setLayout(null);
+
+        // 2. Heading Title
+        JLabel titleLabel = new JLabel("Welcome to Clinic Login", JLabel.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
+        titleLabel.setForeground(new Color(0, 102, 204)); // Sunder Blue color
+        titleLabel.setBounds(50, 20, 300, 30);
+        frame.add(titleLabel);
+
+        // 3. Email Input
+        JLabel emailLabel = new JLabel("Email ID:");
+        emailLabel.setBounds(50, 80, 80, 25);
+        frame.add(emailLabel);
+
+        JTextField emailField = new JTextField();
+        emailField.setBounds(140, 80, 200, 25);
+        frame.add(emailField);
+
+        // 4. Password Input
+        JLabel passLabel = new JLabel("Password:");
+        passLabel.setBounds(50, 120, 80, 25);
+        frame.add(passLabel);
+
+        JPasswordField passField = new JPasswordField();
+        passField.setBounds(140, 120, 200, 25);
+        frame.add(passField);
+
+        // 5. Login Button
+        JButton loginButton = new JButton("Login");
+        loginButton.setBounds(140, 180, 100, 35);
+        loginButton.setBackground(new Color(0, 102, 204));
+        loginButton.setForeground(Color.WHITE);
+        loginButton.setFont(new Font("Arial", Font.BOLD, 14));
+        frame.add(loginButton);
+
+        // Button click hone par kya hoga
+        loginButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String email = emailField.getText();
+                String password = new String(passField.getPassword());
+
+                // Humare purane loginUser function ko call karenge jo database se check karta hai
+                if (loginUser(conn, email, password)) {
+                    JOptionPane.showMessageDialog(frame, "🎉 Login Successful!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    frame.dispose(); // Login window band ho jayegi
+                    
+                    // Aage ka menu abhi temporary terminal par hi khulega
+                    createDashboard(conn);
+                } else {
+                    JOptionPane.showMessageDialog(frame, "❌ Invalid Email or Password!", "Login Failed", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        // Window ko screen par dikhana
+        frame.setVisible(true);
+    }
+    // Login check karne ka sahi helper method
+    public static boolean loginUser(Connection conn, String email, String password) {
+        try {
+            String query = "SELECT * FROM users WHERE email = ? AND password = ?";
+            PreparedStatement pst = conn.prepareStatement(query);
+            pst.setString(1, email);
+            pst.setString(2, password);
+            ResultSet rs = pst.executeQuery();
+            
+            if (rs.next()) {
+                pst.close();
+                return true; // Agar user mil gaya toh true
+            }
+            pst.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false; // Agar nahi mila toh false
+    }
+    // Sunder Graphical Dashboard
+    public static void createDashboard(Connection conn) {
+        // 1. Main Dashboard Window (JFrame)
+        JFrame dashboardFrame = new JFrame("Clinic Management System - Dashboard");
+        dashboardFrame.setSize(500, 400);
+        dashboardFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        dashboardFrame.setLocationRelativeTo(null); // Screen ke beech mein khulegi
+        dashboardFrame.setLayout(null);
+
+        // 2. Welcome Title Banner
+        JLabel welcomeLabel = new JLabel("Doctor's Control Panel", JLabel.CENTER);
+        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 22));
+        welcomeLabel.setForeground(new Color(0, 102, 204));
+        welcomeLabel.setBounds(50, 30, 400, 40);
+        dashboardFrame.add(welcomeLabel);
+
+        // 3. Button 1: Register New Patient
+        JButton btnRegister = new JButton("Register New Patient");
+        btnRegister.setBounds(100, 100, 300, 45);
+        btnRegister.setFont(new Font("Arial", Font.PLAIN, 16));
+        btnRegister.setBackground(Color.WHITE);
+        dashboardFrame.add(btnRegister);
+
+        // 4. Button 2: View All Patients
+        JButton btnView = new JButton("View All Patients");
+        btnView.setBounds(100, 160, 300, 45);
+        btnView.setFont(new Font("Arial", Font.PLAIN, 16));
+        btnView.setBackground(Color.WHITE);
+        dashboardFrame.add(btnView);
+
+        // 5. Button 3: Book Appointment
+        JButton btnBook = new JButton("Book New Appointment");
+        btnBook.setBounds(100, 220, 300, 45);
+        btnBook.setFont(new Font("Arial", Font.PLAIN, 16));
+        btnBook.setBackground(Color.WHITE);
+        dashboardFrame.add(btnBook);
+
+        // 6. Button 4: Logout / Exit
+        JButton btnExit = new JButton("Logout");
+        btnExit.setBounds(100, 290, 300, 40);
+        btnExit.setFont(new Font("Arial", Font.BOLD, 14));
+        btnExit.setBackground(new Color(255, 102, 102));
+        btnExit.setForeground(Color.WHITE);
+        dashboardFrame.add(btnExit);
+
+        // --- BUTTON ACTIONS ---
+
+        // Register Button Click
+        btnRegister.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JOptionPane.showMessageDialog(dashboardFrame, "Patient Registration UI Coming Soon!");
+                // Yahan hum Patient Registration ka UI jodenge next step mein
+            }
+        });
+
+        // View Patients Button Click
+        btnView.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JOptionPane.showMessageDialog(dashboardFrame, "View Patients UI Coming Soon!");
+                // Yahan hum Table format mein data dikhane ka UI jodenge
+            }
+        });
+
+        // Book Appointment Button Click
+        btnBook.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JOptionPane.showMessageDialog(dashboardFrame, "Appointment Booking UI Coming Soon!");
+                // Yahan hum Appointment form ka UI jodenge
+            }
+        });
+
+        // Logout Button Click
+        btnExit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dashboardFrame.dispose();
+                createLoginWindow(conn); // Wapas login screen par bhej dega
+            }
+        });
+
+        // Window ko screen par dikhana
+        dashboardFrame.setVisible(true);
     }
 }
