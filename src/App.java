@@ -1,8 +1,11 @@
+import java.sql.Statement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Scanner;
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -41,7 +44,7 @@ public class App {
             } else if (choice == 2) {
                 viewAllPatients(conn);
             } else if (choice == 3) {
-                bookAppointment(conn); // Naye function ko call kiya
+              createBookAppointmentWindow(conn); // Naye GUI window ko call kiya// Naye function ko call kiya
             } else if (choice == 4) {
                 System.out.println("Thank you for using Clinic Management System!");
                 break;
@@ -305,6 +308,13 @@ public class App {
             public void actionPerformed(ActionEvent e) {
                 createRegisterPatientWindow(conn);
                 // Yahan hum Patient Registration ka UI jodenge next step mein
+                // Book Appointment Button Click
+        btnBook.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                createBookAppointmentWindow(conn);
+            }
+        });
             }
         });
 
@@ -312,7 +322,7 @@ public class App {
         btnView.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(dashboardFrame, "View Patients UI Coming Soon!");
+                createViewPatientsWindow(conn);
                 // Yahan hum Table format mein data dikhane ka UI jodenge
             }
         });
@@ -321,7 +331,7 @@ public class App {
         btnBook.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(dashboardFrame, "Appointment Booking UI Coming Soon!");
+                createBookAppointmentWindow(conn);
                 // Yahan hum Appointment form ka UI jodenge
             }
         });
@@ -433,5 +443,142 @@ public class App {
 
         regFrame.setVisible(true);
     }
-        // Sunder Patient Registration Window
+    // Appointment Booking Window
+   // Appointment Booking Window
+    public static void createBookAppointmentWindow(Connection conn) {
+        JFrame appFrame = new JFrame("Book New Appointment");
+        appFrame.setSize(450, 400);
+        appFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        appFrame.setLocationRelativeTo(null);
+        appFrame.setLayout(null);
+
+        JLabel headLabel = new JLabel("Appointment Booking Form", JLabel.CENTER);
+        headLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        headLabel.setBounds(50, 10, 350, 30);
+        appFrame.add(headLabel);
+
+        // Patient ID
+        JLabel idLabel = new JLabel("Patient ID:");
+        idLabel.setBounds(40, 70, 120, 25);
+        appFrame.add(idLabel);
+
+        JTextField idField = new JTextField();
+        idField.setBounds(180, 70, 200, 25);
+        appFrame.add(idField);
+
+        // Doctor ID (Badlaav yahan kiya hai)
+        JLabel docLabel = new JLabel("Doctor ID (Number):");
+        docLabel.setBounds(40, 120, 140, 25);
+        appFrame.add(docLabel);
+
+        JTextField docField = new JTextField();
+        docField.setBounds(180, 120, 200, 25);
+        appFrame.add(docField);
+
+        // Appointment Date (YYYY-MM-DD)
+        JLabel dateLabel = new JLabel("Date (YYYY-MM-DD):");
+        dateLabel.setBounds(40, 170, 140, 25);
+        appFrame.add(dateLabel);
+
+        JTextField dateField = new JTextField();
+        dateField.setBounds(180, 170, 200, 25);
+        appFrame.add(dateField);
+
+        // Book Button
+        JButton bookButton = new JButton("Book Appointment");
+        bookButton.setBounds(130, 250, 180, 40);
+        bookButton.setBackground(new Color(0, 102, 204));
+        bookButton.setForeground(Color.WHITE);
+        bookButton.setFont(new Font("Arial", Font.BOLD, 14));
+        appFrame.add(bookButton);
+
+        bookButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String patientIdStr = idField.getText();
+                String doctorIdStr = docField.getText(); // Doctor ID string le rahe hain
+                String appDate = dateField.getText();
+
+                if (patientIdStr.isEmpty() || doctorIdStr.isEmpty() || appDate.isEmpty()) {
+                    JOptionPane.showMessageDialog(appFrame, "Please fill all fields!", "Warning", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                try {
+                    int patientId = Integer.parseInt(patientIdStr);
+                    int doctorId = Integer.parseInt(doctorIdStr); // String ko number mein badla
+
+                    // Sahi Query aapke table columns ke hissab se
+                    String query = "INSERT INTO appointments (patient_id, doctor_id, appointment_date) VALUES (?, ?, ?)";
+                    PreparedStatement pst = conn.prepareStatement(query);
+                    pst.setInt(1, patientId);
+                    pst.setInt(2, doctorId);
+                    pst.setString(3, appDate);
+
+                    int rows = pst.executeUpdate();
+                    if (rows > 0) {
+                        JOptionPane.showMessageDialog(appFrame, "🎉 Appointment Booked Successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                        appFrame.dispose();
+                    }
+                    pst.close();
+
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(appFrame, "Patient ID and Doctor ID must be numbers!", "Error", JOptionPane.ERROR_MESSAGE);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(appFrame, "Database Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        appFrame.setVisible(true);
+    }
+    // View All Patients Window
+    public static void createViewPatientsWindow(Connection conn) {
+        JFrame viewFrame = new JFrame("All Registered Patients");
+        viewFrame.setSize(600, 400);
+        viewFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        viewFrame.setLocationRelativeTo(null);
+        viewFrame.setLayout(new BorderLayout());
+
+        JLabel headLabel = new JLabel("Registered Patients List", JLabel.CENTER);
+        headLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        headLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        viewFrame.add(headLabel, BorderLayout.NORTH);
+
+        // Table Columns (Aapke patients table ke columns ke hissab se)
+        String[] columnNames = {"Patient ID", "Name", "Age", "Gender", "Contact"};
+        DefaultTableModel model = new DefaultTableModel(columnNames, 0);
+        JTable table = new JTable(model);
+        JScrollPane scrollPane = new JScrollPane(table);
+        viewFrame.add(scrollPane, BorderLayout.CENTER);
+
+        try {
+            // Database se data nikalne ki query
+            String query = "SELECT * FROM patients";
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+
+            while (rs.next()) {
+                int id = rs.getInt("patient_id"); // Agar aapke column ka naam sirf id hai toh "id" likhiye
+                String name = rs.getString("name");
+                int age = rs.getInt("age");
+                String gender = rs.getString("gender");
+                String contact = rs.getString("phone");
+
+                // Table mein row add kar rahe hain
+                model.addRow(new Object[]{id, name, age, gender, contact});
+            }
+            rs.close();
+            stmt.close();
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(viewFrame, "Database Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+
+        viewFrame.setVisible(true);
+    }
+
+    
 }
