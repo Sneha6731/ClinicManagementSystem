@@ -259,7 +259,7 @@ public class App {
     public static void createDashboard(Connection conn) {
         // 1. Main Dashboard Window (JFrame)
         JFrame dashboardFrame = new JFrame("Clinic Management System - Dashboard");
-        dashboardFrame.setSize(500, 400);
+        dashboardFrame.setSize(500, 550);
         dashboardFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         dashboardFrame.setLocationRelativeTo(null); // Screen ke beech mein khulegi
         dashboardFrame.setLayout(null);
@@ -291,10 +291,21 @@ public class App {
         btnBook.setFont(new Font("Arial", Font.PLAIN, 16));
         btnBook.setBackground(Color.WHITE);
         dashboardFrame.add(btnBook);
-
+// 6. Button 4: View All Appointments
+        JButton btnAppointments = new JButton("View All Appointments");
+        btnAppointments.setBounds(100, 280, 300, 45); // Y-axis ko 280 kar diya taaki gap bana rahe
+        btnAppointments.setFont(new Font("Arial", Font.PLAIN, 16));
+        btnAppointments.setBackground(Color.WHITE);
+        dashboardFrame.add(btnAppointments);
+        // 7. Button 5: Cancel Appointment
+        JButton btnCancelApp = new JButton("Cancel Appointment");
+        btnCancelApp.setBounds(100, 340, 300, 45); // Y-axis ko 340 kar diya
+        btnCancelApp.setFont(new Font("Arial", Font.PLAIN, 16));
+        btnCancelApp.setBackground(Color.WHITE);
+        dashboardFrame.add(btnCancelApp);
         // 6. Button 4: Logout / Exit
         JButton btnExit = new JButton("Logout");
-        btnExit.setBounds(100, 290, 300, 40);
+        btnExit.setBounds(100, 400, 300, 40);
         btnExit.setFont(new Font("Arial", Font.BOLD, 14));
         btnExit.setBackground(new Color(255, 102, 102));
         btnExit.setForeground(Color.WHITE);
@@ -324,6 +335,20 @@ public class App {
             public void actionPerformed(ActionEvent e) {
                 createViewPatientsWindow(conn);
                 // Yahan hum Table format mein data dikhane ka UI jodenge
+            }
+        });
+        // View Appointments Button Click
+        btnAppointments.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                createViewAppointmentsWindow(conn);
+            }
+        });
+        // Cancel Appointment Button Click
+        btnCancelApp.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                createCancelAppointmentWindow(conn);
             }
         });
 
@@ -578,6 +603,120 @@ public class App {
         }
 
         viewFrame.setVisible(true);
+    }
+    // View All Appointments Window
+    public static void createViewAppointmentsWindow(Connection conn) {
+        JFrame viewAppFrame = new JFrame("All Scheduled Appointments");
+        viewAppFrame.setSize(650, 400);
+        viewAppFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        viewAppFrame.setLocationRelativeTo(null);
+        viewAppFrame.setLayout(new BorderLayout());
+
+        JLabel headLabel = new JLabel("Scheduled Appointments List", JLabel.CENTER);
+        headLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        headLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        viewAppFrame.add(headLabel, BorderLayout.NORTH);
+
+        // Table Columns (Aapke appointments table ke columns ke hissab se)
+        String[] columnNames = {"Appointment ID", "Patient ID", "Doctor ID", "Appointment Date", "Status"};
+        DefaultTableModel model = new DefaultTableModel(columnNames, 0);
+        JTable table = new JTable(model);
+        JScrollPane scrollPane = new JScrollPane(table);
+        viewAppFrame.add(scrollPane, BorderLayout.CENTER);
+
+        try {
+            // Database se data nikalne ki query
+            String query = "SELECT * FROM appointments";
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+
+            while (rs.next()) {
+                int appId = rs.getInt("appointment_id");
+                int patId = rs.getInt("patient_id");
+                int docId = rs.getInt("doctor_id");
+                String appDate = rs.getString("appointment_date");
+                String status = rs.getString("status");
+
+                // Table mein row add kar rahe hain
+                model.addRow(new Object[]{appId, patId, docId, appDate, status});
+            }
+            rs.close();
+            stmt.close();
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(viewAppFrame, "Database Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+
+        viewAppFrame.setVisible(true);
+    }
+    // Cancel Appointment Window
+    public static void createCancelAppointmentWindow(Connection conn) {
+        JFrame cancelFrame = new JFrame("Cancel Appointment");
+        cancelFrame.setSize(400, 250);
+        cancelFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        cancelFrame.setLocationRelativeTo(null);
+        cancelFrame.setLayout(null);
+
+        JLabel headLabel = new JLabel("Cancel Appointment", JLabel.CENTER);
+        headLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        headLabel.setBounds(50, 10, 300, 30);
+        cancelFrame.add(headLabel);
+
+        // Appointment ID Input
+        JLabel idLabel = new JLabel("Appointment ID:");
+        idLabel.setBounds(40, 70, 120, 25);
+        cancelFrame.add(idLabel);
+
+        JTextField idField = new JTextField();
+        idField.setBounds(180, 70, 180, 25);
+        cancelFrame.add(idField);
+
+        // Cancel Button
+        JButton btnCancel = new JButton("Cancel Appointment");
+        btnCancel.setBounds(100, 140, 200, 40);
+        btnCancel.setBackground(Color.RED);
+        btnCancel.setForeground(Color.WHITE);
+        btnCancel.setFont(new Font("Arial", Font.BOLD, 14));
+        cancelFrame.add(btnCancel);
+
+        btnCancel.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String appIdStr = idField.getText();
+
+                if (appIdStr.isEmpty()) {
+                    JOptionPane.showMessageDialog(cancelFrame, "Please enter Appointment ID!", "Warning", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                try {
+                    int appId = Integer.parseInt(appIdStr);
+
+                    // Database query to delete the appointment
+                    String query = "DELETE FROM appointments WHERE appointment_id = ?";
+                    PreparedStatement pst = conn.prepareStatement(query);
+                    pst.setInt(1, appId);
+
+                    int rows = pst.executeUpdate();
+                    if (rows > 0) {
+                        JOptionPane.showMessageDialog(cancelFrame, "🗑️ Appointment Cancelled Successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                        cancelFrame.dispose();
+                    } else {
+                        JOptionPane.showMessageDialog(cancelFrame, "No appointment found with this ID!", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                    pst.close();
+
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(cancelFrame, "Appointment ID must be a number!", "Error", JOptionPane.ERROR_MESSAGE);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(cancelFrame, "Database Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+
+        cancelFrame.setVisible(true);
     }
 
     
